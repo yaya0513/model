@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>螺母端面质检 · 边缘 AI 质检工位原型</title>
+<style>
+/* ===== 独立运行 fallback：Kimi 变量不存在时使用默认值 ===== */
+:root{
+  --kimi-font-sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  --kimi-font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --kimi-color-text-primary:#1a1a1a;
+  --kimi-color-text-secondary:#4b5563;
+  --kimi-color-text-tertiary:#6b7280;
+  --kimi-color-text-quaternary:#9ca3af;
+  --kimi-color-surface:#ffffff;
+  --kimi-color-surface-muted:#f3f4f6;
+  --kimi-color-surface-raised:#ffffff;
+  --kimi-color-border:#e5e7eb;
+  --kimi-color-danger:#dc2626;
+  --kimi-color-positive:#16a34a;
+  --kimi-color-warning:#d97706;
+  --kimi-color-accent:#2563eb;
+  --t-fast:150ms; --t-slow:300ms; --ease-out:cubic-bezier(.22,.61,.36,1);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --kimi-color-text-primary:#f4f4f5;
+    --kimi-color-text-secondary:#d4d4d8;
+    --kimi-color-text-tertiary:#a1a1aa;
+    --kimi-color-text-quaternary:#71717a;
+    --kimi-color-surface:#18181b;
+    --kimi-color-surface-muted:#27272a;
+    --kimi-color-surface-raised:#27272a;
+    --kimi-color-border:#3f3f46;
+    --kimi-color-danger:#f87171;
+    --kimi-color-positive:#4ade80;
+    --kimi-color-accent:#60a5fa;
+  }
+}
+body{margin:0;padding:24px;background:var(--kimi-color-surface);color:var(--kimi-color-text-primary)}
+#qc{max-width:960px;margin:0 auto}
+</style>
+<style>
+#qc{font-family:var(--kimi-font-sans);font-size:16px;line-height:24px}
+#qc button,#qc input{font:inherit}
+#qc svg text{font-family:var(--kimi-font-sans)}
+#qc .muted{color:var(--kimi-color-text-tertiary)}
+#qc .small{font-size:12px}
+#qc .card{border:1px solid var(--kimi-color-border);border-radius:12px;padding:16px}
+#qc .chip{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:2px 8px;font-size:12px}
+#qc .btn{border:1px solid var(--kimi-color-border);border-radius:8px;padding:8px 16px;background:transparent;color:var(--kimi-color-text-primary);cursor:pointer}
+#qc .btn.primary{background:var(--kimi-color-text-primary);color:var(--kimi-color-surface);border-color:var(--kimi-color-text-primary)}
+#qc .btn:hover{filter:brightness(.92)}
+#qc .step{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--kimi-color-text-tertiary)}
+#qc .step .dot{width:22px;height:22px;border-radius:50%;border:1px solid var(--kimi-color-border);display:flex;align-items:center;justify-content:center;font-size:12px}
+#qc .step.on{color:var(--kimi-color-text-primary)}
+#qc .step.on .dot{background:var(--kimi-color-text-primary);color:var(--kimi-color-surface);border-color:var(--kimi-color-text-primary)}
+#qc .thumb{border:1px solid var(--kimi-color-border);border-radius:10px;padding:8px;cursor:pointer;transition:background var(--t-fast) var(--ease-out)}
+#qc .thumb:hover{background:var(--kimi-color-surface-muted)}
+#qc table{width:100%;border-collapse:collapse;font-size:14px}
+#qc th{font-weight:500;color:var(--kimi-color-text-tertiary);text-align:left;font-size:12px;padding:8px;border-bottom:1px solid var(--kimi-color-border)}
+#qc td{padding:8px;border-bottom:1px solid var(--kimi-color-border)}
+#qc .ng{background:color-mix(in srgb,var(--kimi-color-danger) 12%,transparent);color:var(--kimi-color-danger);border-radius:6px;padding:2px 8px;font-size:12px}
+#qc .okc{background:color-mix(in srgb,var(--kimi-color-positive) 15%,transparent);color:var(--kimi-color-positive);border-radius:6px;padding:2px 8px;font-size:12px}
+#qc .bar{height:6px;border-radius:999px;background:var(--kimi-color-surface-muted);overflow:hidden}
+#qc .bar>i{display:block;height:100%;background:var(--kimi-color-text-primary);border-radius:999px}
+#qc .scan{animation:qscan 1.1s linear infinite}
+@keyframes qscan{0%{transform:translateY(0)}100%{transform:translateY(216px)}}
+@media (max-width:640px){#s2>div{grid-template-columns:1fr!important}}
+</style>
+</head>
+<body>
+<div id="qc">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="font-size:17px;font-weight:500">螺母端面质检 · 边缘 AI 质检工位</div>
+    <span class="chip" style="background:color-mix(in srgb,var(--kimi-color-positive) 15%,transparent);color:var(--kimi-color-positive)">● 边缘端在线 · 本地推理</span>
+    <span class="chip muted">工位 A-03</span>
+    <span style="flex:1"></span>
+    <button class="btn small" onclick="go(3)" style="font-size:13px;padding:6px 12px">留痕记录</button>
+  </div>
+  <div style="display:flex;gap:24px;margin:16px 0;flex-wrap:wrap" id="steps">
+    <div class="step on" data-s="1"><span class="dot">1</span>导入样图</div>
+    <div class="step" data-s="2"><span class="dot">2</span>查看 AI 建议</div>
+    <div class="step" data-s="3"><span class="dot">3</span>人工确认并留痕</div>
+  </div>
+
+  <div id="s1">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="font-weight:500">今日样图</div>
+      <span class="muted small">点击任一缩略图，模拟导入并触发本地推理</span>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="uploadSim()">＋ 上传本地样图</button>
+    </div>
+    <div id="gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px"></div>
+  </div>
+
+  <div id="s2" style="display:none">
+    <div style="display:grid;grid-template-columns:minmax(240px,340px) 1fr;gap:16px;align-items:start">
+      <div class="card" style="padding:12px;position:relative;overflow:hidden" id="imgWrap"></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="muted small">AI 检测建议</span><span style="flex:1"></span><span class="muted small" id="inferTime"></span>
+        </div>
+        <div id="verdict" style="margin-bottom:12px"></div>
+        <div class="muted small" style="margin:12px 0 4px">置信度</div>
+        <div class="bar"><i id="confBar" style="width:0;transition:width var(--t-slow) var(--ease-out)"></i></div>
+        <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn primary" onclick="confirm('采纳 AI 建议')">采纳建议</button>
+          <button class="btn" onclick="confirm('人工改判')">人工改判</button>
+          <button class="btn" onclick="confirm('驳回 AI 判定')">驳回</button>
+          <button class="btn" onclick="go(1)">返回</button>
+        </div>
+        <div class="muted small" style="margin-top:12px">最终判定权在质检员：确认、改判或驳回均写入留痕记录，作为后续模型迭代样本。</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s3" style="display:none">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div class="card" style="flex:1;min-width:140px"><div class="muted small">今日已检</div><div style="font-size:28px;font-weight:500;font-variant-numeric:tabular-nums" id="stTotal">12</div></div>
+      <div class="card" style="flex:1;min-width:140px"><div class="muted small">人机判定一致率</div><div style="font-size:28px;font-weight:500;font-variant-numeric:tabular-nums">92.4%</div></div>
+      <div class="card" style="flex:1;min-width:140px"><div class="muted small">平均确认耗时</div><div style="font-size:28px;font-weight:500;font-variant-numeric:tabular-nums">3.2 s</div></div>
+      <div class="card" style="flex:1;min-width:140px"><div class="muted small">留痕记录</div><div style="font-size:28px;font-weight:500;font-variant-numeric:tabular-nums" id="stTrace">3</div></div>
+    </div>
+    <div class="card" style="padding:8px 16px;overflow-x:auto">
+      <table><thead><tr><th>时间</th><th>样图 ID</th><th>AI 判定</th><th>人工确认</th><th>操作员</th><th>单件耗时</th></tr></thead><tbody id="traceBody"></tbody></table>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn primary" onclick="go(1)">继续质检</button>
+      <button class="btn" onclick="toast('留痕记录已导出：trace_20261117.csv（演示）')">导出留痕 CSV</button>
+    </div>
+  </div>
+  <div id="toast" class="muted small" style="margin-top:12px;min-height:18px"></div>
+</div>
+<script>
+const SAMPLES=[
+ {id:'S-1024',type:'ok',label:'合格样件'},
+ {id:'S-1025',type:'scratch',label:'端面划伤'},
+ {id:'S-1026',type:'burr',label:'边缘毛刺'},
+ {id:'S-1027',type:'chip',label:'端面崩边'}];
+const DEFECTS={scratch:['端面划伤','长度 2.1 mm，位于端面 11 点钟方向','隔离并复测'],burr:['边缘毛刺','毛刺高 0.3 mm，超出工艺上限 0.2 mm','隔离并复测'],chip:['端面崩边','缺损面积约 1.8 mm²','停机检查刀具与送料']};
+let cur=null,traceN=3;
+function nutSVG(s,annotated){
+ const hex='60,8 105,34 105,86 60,112 15,86 15,34';
+ let inner='<circle cx="60" cy="60" r="24" fill="none" stroke="var(--kimi-color-text-tertiary)" stroke-width="1.5"/>'+
+ '<circle cx="60" cy="60" r="19" fill="none" stroke="var(--kimi-color-text-quaternary)" stroke-width="1" stroke-dasharray="3 3"/>'+
+ '<circle cx="60" cy="60" r="46" fill="none" stroke="var(--kimi-color-text-quaternary)" stroke-width="1" stroke-dasharray="4 4"/>';
+ let box='',mark='';
+ if(s.type==='scratch'){mark='<path d="M38 42 L74 36" stroke="var(--kimi-color-danger)" stroke-width="2" stroke-linecap="round"/>';box=annotated?'<rect x="30" y="26" width="52" height="26" fill="none" stroke="var(--kimi-color-danger)" stroke-width="1.5" stroke-dasharray="4 3" rx="4"/>':'';}
+ if(s.type==='burr'){mark='<path d="M100 70 L108 64 L112 72 L106 80 Z" fill="var(--kimi-color-danger)" opacity=".85"/>';box=annotated?'<rect x="88" y="56" width="32" height="32" fill="none" stroke="var(--kimi-color-danger)" stroke-width="1.5" stroke-dasharray="4 3" rx="4"/>':'';}
+ if(s.type==='chip'){mark='<path d="M20 44 L34 40 L32 54 Z" fill="var(--kimi-color-danger)" opacity=".85"/>';box=annotated?'<rect x="10" y="32" width="36" height="30" fill="none" stroke="var(--kimi-color-danger)" stroke-width="1.5" stroke-dasharray="4 3" rx="4"/>':'';}
+ return '<svg viewBox="0 0 120 120" style="width:100%;display:block">'+mark+
+ '<polygon points="'+hex+'" fill="none" stroke="var(--kimi-color-text-secondary)" stroke-width="2" stroke-linejoin="round"/>'+inner+box+
+ (annotated&&s.type!=='ok'?'<text x="62" y="24" font-size="9" fill="var(--kimi-color-danger)">缺陷</text>':'')+'</svg>';
+}
+function gallery(){
+ document.getElementById('gallery').innerHTML=SAMPLES.map(s=>
+ '<div class="thumb" onclick="pick(''+s.id+'')"><div style="aspect-ratio:1">'+nutSVG(s,false)+'</div>'+
+ '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span class="small">'+s.id+'</span>'+
+ (s.type==='ok'?'<span class="okc">合格</span>':'<span class="ng">'+s.label+'</span>')+'</div></div>').join('');
+}
+function pick(id){
+ cur=SAMPLES.find(x=>x.id===id);go(2);
+ const w=document.getElementById('imgWrap');
+ w.innerHTML='<div style="position:relative">'+nutSVG(cur,false)+
+ '<div class="scan" style="position:absolute;left:0;right:0;top:0;height:3px;background:var(--kimi-color-accent);opacity:.8"></div></div>'+
+ '<div class="muted small" style="text-align:center;margin-top:4px">边缘端推理中…</div>';
+ document.getElementById('inferTime').textContent='';document.getElementById('verdict').innerHTML='';
+ document.getElementById('confBar').style.width='0';
+ setTimeout(()=>{
+  w.innerHTML=nutSVG(cur,true)+'<div class="small muted" style="text-align:center;margin-top:4px">'+cur.id+' · 端面检测视野</div>';
+  const t=38+Math.floor(Math.random()*20);
+  document.getElementById('inferTime').textContent='本地推理 '+t+' ms · 未上传云端';
+  const ok=cur.type==='ok';
+  document.getElementById('verdict').innerHTML= ok?
+   '<span class="okc" style="font-size:14px">判定：合格（OK）</span><div style="margin-top:8px">端面完好，未见划伤、毛刺、崩边。建议：<b style="font-weight:500">放行</b>。</div>':
+   '<span class="ng" style="font-size:14px">判定：不合格（NG）</span><div style="margin-top:8px"><b style="font-weight:500">'+DEFECTS[cur.type][0]+'</b>：'+DEFECTS[cur.type][1]+'。建议：<b style="font-weight:500">'+DEFECTS[cur.type][2]+'</b>。</div>';
+  document.getElementById('confBar').style.width=(ok?96.8:93+Math.random()*4).toFixed(1)+'%';
+ },900);
+}
+function confirm(act){
+ if(!cur)return;
+ traceN++;
+ document.getElementById('stTotal').textContent=12+traceN-3;
+ document.getElementById('stTrace').textContent=traceN;
+ const ok=cur.type==='ok';
+ const ai=ok?'合格':'NG · '+DEFECTS[cur.type][0];
+ const now=new Date();
+ const ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+ const tr=document.createElement('tr');
+ tr.innerHTML='<td style="font-variant-numeric:tabular-nums">'+ts+'</td><td style="font-family:var(--kimi-font-mono);font-size:13px">'+cur.id+'</td>'+
+ '<td>'+(ok?'<span class="okc">合格</span>':'<span class="ng">'+ai+'</span>')+'</td>'+
+ '<td>'+(act==='人工改判'?'<span class="okc">改判合格</span>':act==='驳回 AI 判定'?'<span class="ng">驳回 · 待复核</span>':'<span class="okc">一致</span>')+'</td>'+
+ '<td>王工</td><td style="font-variant-numeric:tabular-nums">2.8 s</td>';
+ document.getElementById('traceBody').prepend(tr);
+ go(3);toast(cur.id+' 已确认（'+act+'），留痕完成');
+}
+function uploadSim(){
+ const types=['ok','scratch','burr','chip'];
+ const s={id:'S-'+(1028+SAMPLES.length-4),type:types[Math.floor(Math.random()*4)],label:'新导入'};
+ if(s.type!=='ok')s.label=DEFECTS[s.type][0];
+ SAMPLES.push(s);gallery();toast('已导入本地样图 '+s.id+'.jpg（演示数据），点击缩略图开始质检');
+}
+function go(n){
+ [1,2,3].forEach(i=>document.getElementById('s'+i).style.display=i===n?'':'none');
+ document.querySelectorAll('#steps .step').forEach(e=>e.classList.toggle('on',+e.dataset.s<=n));
+ if(n===3&&document.getElementById('traceBody').children.length===0){
+  document.getElementById('traceBody').innerHTML='<tr><td style="font-variant-numeric:tabular-nums">09:02:11</td><td style="font-family:var(--kimi-font-mono);font-size:13px">S-1019</td><td><span class="ng">NG · 端面划伤</span></td><td><span class="okc">一致</span></td><td>王工</td><td style="font-variant-numeric:tabular-nums">3.1 s</td></tr><tr><td style="font-variant-numeric:tabular-nums">09:05:47</td><td style="font-family:var(--kimi-font-mono);font-size:13px">S-1021</td><td><span class="okc">合格</span></td><td><span class="okc">一致</span></td><td>王工</td><td style="font-variant-numeric:tabular-nums">2.6 s</td></tr><tr><td style="font-variant-numeric:tabular-nums">09:09:03</td><td style="font-family:var(--kimi-font-mono);font-size:13px">S-1022</td><td><span class="ng">NG · 边缘毛刺</span></td><td><span class="ng">驳回 · 待复核</span></td><td>李工</td><td style="font-variant-numeric:tabular-nums">4.0 s</td></tr>';
+ }
+}
+function toast(t){document.getElementById('toast').textContent=t;}
+gallery();
+</script>
+</body>
+</html>
